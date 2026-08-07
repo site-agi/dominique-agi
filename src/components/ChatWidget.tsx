@@ -22,7 +22,9 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onOpenShop }) => {
   ]);
   const [inputText, setInputText] = useState('');
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -32,17 +34,49 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onOpenShop }) => {
     scrollToBottom();
   }, [messages]);
 
-  const speakReply = (textToSpeak: string) => {
+  const speakText = (textToSpeak: string) => {
     if (!isVoiceEnabled) return;
+
+    setIsSpeaking(true);
+
+    // 1. Try Vercel Serverless Audio API endpoint
     try {
-      // Calls native Vercel serverless voice endpoint
       const audioUrl = `/api/speak?text=${encodeURIComponent(textToSpeak)}`;
-      const audio = new Audio(audioUrl);
-      audio.play().catch((err) => {
-        console.log('Audio play interaction needed:', err);
-      });
+      if (!audioRef.current) {
+        audioRef.current = new Audio();
+      }
+      audioRef.current.src = audioUrl;
+      
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            audioRef.current!.onended = () => setIsSpeaking(false);
+          })
+          .catch((err) => {
+            console.log('Serverless Audio fallback to SpeechSynthesis:', err);
+            fallbackNativeSpeech(textToSpeak);
+          });
+      }
     } catch (e) {
-      console.log('Voice playback error:', e);
+      fallbackNativeSpeech(textToSpeak);
+    }
+  };
+
+  const fallbackNativeSpeech = (textToSpeak: string) => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.lang = 'pt-BR';
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+
+      window.speechSynthesis.speak(utterance);
+    } else {
+      setIsSpeaking(false);
     }
   };
 
@@ -67,7 +101,9 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onOpenShop }) => {
       let replyText = 'Entendido! Estou pronta para te ajudar. Se quiser ver nossos serviços ou orçamentos, clique no botão "COMPRAR" no topo ou fale no nosso WhatsApp (74 99928-1423)!';
       
       const lower = currentQuery.toLowerCase();
-      if (lower.includes('comprar') || lower.includes('preço') || lower.includes('serviço') || lower.includes('quanto')) {
+      if (lower.includes('oi') || lower.includes('olá') || lower.includes('ola')) {
+        replyText = 'Olá! Que bom te ver aqui no site da Lincoln Corp! Como posso ajudar você hoje?';
+      } else if (lower.includes('comprar') || lower.includes('preço') || lower.includes('serviço') || lower.includes('quanto')) {
         replyText = 'Oferecemos Automação de WhatsApp 24h, Web Apps PWA, Automação de Instagram e CRM Comercial! Clique no botão COMPRAR no topo para ver os detalhes e adicionar à sacola.';
       } else if (lower.includes('whatsapp') || lower.includes('contato') || lower.includes('falar')) {
         replyText = 'Você pode nos chamar direto no WhatsApp pelo número 74 99928-1423 ou abrir a gaveta CONTATO no topo do site!';
@@ -82,9 +118,9 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onOpenShop }) => {
         },
       ]);
 
-      // Trigger Voice Playback
-      speakReply(replyText);
-    }, 800);
+      // Trigger Voice Synthesis
+      speakText(replyText);
+    }, 600);
   };
 
   return (
@@ -122,12 +158,29 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onOpenShop }) => {
         
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
-            className="flex items-center gap-1 text-[9px] font-mono uppercase tracking-wider text-black/70 hover:text-black transition-colors px-1.5 py-0.5 rounded bg-white/30 border border-black/10 cursor-pointer"
+            type="button"
+            onClick={() => {
+              const nextState = !isVoiceEnabled;
+              setIsVoiceEnabled(nextState);
+              if (!nextState) {
+                if (audioRef.current) audioRef.current.pause();
+                if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+                setIsSpeaking(false);
+              }
+            }}
+            className={`flex items-center gap-1 text-[9px] font-mono uppercase tracking-wider transition-all px-2 py-0.5 rounded border cursor-pointer ${
+              isVoiceEnabled
+                ? 'bg-black text-white border-black shadow-xs'
+                : 'bg-white/30 text-black/60 border-black/10'
+            }`}
             title={isVoiceEnabled ? 'Voz da Dominique Ativada' : 'Voz Mutada'}
           >
-            {isVoiceEnabled ? <Volume2 size={12} className="text-emerald-600" /> : <VolumeX size={12} className="text-gray-400" />}
-            <span>{isVoiceEnabled ? 'VOZ IA' : 'MUTADO'}</span>
+            {isVoiceEnabled ? (
+              <Volume2 size={12} className={isSpeaking ? 'animate-bounce text-emerald-400' : 'text-white'} />
+            ) : (
+              <VolumeX size={12} />
+            )}
+            <span>{isVoiceEnabled ? (isSpeaking ? 'FALANDO...' : 'VOZ IA') : 'MUTADO'}</span>
           </button>
         </div>
       </div>
@@ -161,6 +214,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onOpenShop }) => {
       {/* Quick Suggestion Chips */}
       <div className="flex items-center gap-1.5 overflow-x-auto py-2 my-1 no-scrollbar">
         <button
+          type="button"
           onClick={onOpenShop}
           className="px-2.5 py-1 bg-white/40 hover:bg-black hover:text-white transition-all text-[10px] font-bold uppercase tracking-wider rounded-full border border-black/15 text-black shrink-0 cursor-pointer backdrop-blur-xs"
         >
