@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Configura cabeçalhos de CORS
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -14,26 +13,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  // URL FIXA E PERMANENTE DO SENTINELA (ZERO TROCA DE LINK!)
-  const FIXED_SENTINEL_URL = 'https://dominique-sentinel-lincoln-corp.loca.lt';
+  // A Vercel lê dinamicamente process.env.VITE_SENTINEL_URL a cada chamada
+  const sentinelUrl = process.env.VITE_SENTINEL_URL || process.env.SENTINEL_URL;
+
+  if (!sentinelUrl) {
+    return res.status(503).json({ error: 'Sentinela URL não configurada na Vercel.' });
+  }
 
   try {
     const { text } = req.body || {};
     
-    // Repassa a requisição do visitante com cabeçalho Bypass do Localtunnel
-    const response = await fetch(`${FIXED_SENTINEL_URL}/api/chat`, {
+    // Roteador Serverless ultra-rápido apontando direto pro túnel Cloudflare
+    const response = await fetch(`${sentinelUrl}/api/chat`, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Bypass-Tunnel-Remainder': 'true'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
     });
 
     const data = await response.json();
     return res.status(200).json(data);
   } catch (error: any) {
-    console.error('Erro no Sentinela Vercel Proxy:', error);
-    return res.status(502).json({ error: 'A Dominique AGI está offline ou o sentinela do site não foi iniciado.' });
+    console.error('Erro de Proxy no Sentinela da Vercel:', error);
+    return res.status(502).json({ error: 'A Dominique AGI está offline ou a sentinela do site não foi iniciada.' });
   }
 }
