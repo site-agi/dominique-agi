@@ -221,7 +221,22 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onOpenShop }) => {
             </span>
           </div>
         ))}
+
+        {/* Indicador de Digitando (3 Bolinhas Animadas da Dominique) */}
+        {isLoading && (
+          <div className="flex flex-col items-start">
+            <div className="bg-white/40 text-black border border-black/15 px-3 py-2 rounded-lg rounded-bl-none shadow-xs backdrop-blur-xs flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 bg-black rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+              <span className="w-1.5 h-1.5 bg-black rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+              <span className="w-1.5 h-1.5 bg-black rounded-full animate-bounce"></span>
+            </div>
+            <span className="text-[9px] text-black/50 font-mono font-semibold mt-0.5 px-1">
+              Dominique está digitando...
+            </span>
+          </div>
+        )}
         <div ref={messagesEndRef} />
+
       </div>
 
       {/* Quick Suggestion Chips */}
