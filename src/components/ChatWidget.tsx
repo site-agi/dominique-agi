@@ -33,7 +33,8 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onOpenShop }) => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isLoading]);
+
 
   const speakText = (textToSpeak: string) => {
     if (!isVoiceEnabled) return;
@@ -224,17 +225,18 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onOpenShop }) => {
 
         {/* Indicador de Digitando (3 Bolinhas Animadas da Dominique) */}
         {isLoading && (
-          <div className="flex flex-col items-start">
-            <div className="bg-white/40 text-black border border-black/15 px-3 py-2 rounded-lg rounded-bl-none shadow-xs backdrop-blur-xs flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 bg-black rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-              <span className="w-1.5 h-1.5 bg-black rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-              <span className="w-1.5 h-1.5 bg-black rounded-full animate-bounce"></span>
+          <div className="flex flex-col items-start my-1.5 animate-fade-in">
+            <div className="bg-white/80 border border-black/20 px-3.5 py-2.5 rounded-2xl rounded-bl-none shadow-md backdrop-blur-md flex items-center gap-1.5">
+              <span className="w-2 h-2 bg-black rounded-full animate-pulse"></span>
+              <span className="w-2 h-2 bg-black rounded-full animate-pulse [animation-delay:0.2s]"></span>
+              <span className="w-2 h-2 bg-black rounded-full animate-pulse [animation-delay:0.4s]"></span>
             </div>
-            <span className="text-[9px] text-black/50 font-mono font-semibold mt-0.5 px-1">
+            <span className="text-[9px] text-black/70 font-mono font-bold mt-1 px-1 tracking-wider uppercase">
               Dominique está digitando...
             </span>
           </div>
         )}
+
         <div ref={messagesEndRef} />
 
       </div>
