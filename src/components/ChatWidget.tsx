@@ -101,9 +101,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onOpenShop }) => {
     // Indicador visual de carregando/pensando
     setIsLoading(true);
 
-    const sentinelUrl = (import.meta as any).env?.VITE_SENTINEL_URL || 'https://fighting-boat-nathan-current.trycloudflare.com';
-
-    fetch(`${sentinelUrl}/api/chat`, {
+    fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: currentQuery }),
