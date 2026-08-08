@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Configura cabeçalhos de CORS para permitir requisições do frontend
+  // Configura cabeçalhos de CORS
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -14,27 +14,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  // A Vercel lê as variáveis de ambiente dinamicamente em Serverless Functions (process.env)
-  const sentinelUrl = process.env.VITE_SENTINEL_URL || process.env.SENTINEL_URL;
-
-  if (!sentinelUrl) {
-    return res.status(503).json({ error: 'Sentinela URL não configurada na Vercel.' });
-  }
+  // URL FIXA E PERMANENTE DO SENTINELA (ZERO TROCA DE LINK!)
+  const FIXED_SENTINEL_URL = 'https://dominique-sentinel-lincoln-corp.loca.lt';
 
   try {
     const { text } = req.body || {};
     
-    // Repassa a requisição do visitante diretamente para a API local da Dominique no celular
-    const response = await fetch(`${sentinelUrl}/api/chat`, {
+    // Repassa a requisição do visitante com cabeçalho Bypass do Localtunnel
+    const response = await fetch(`${FIXED_SENTINEL_URL}/api/chat`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Bypass-Tunnel-Remainder': 'true'
+      },
       body: JSON.stringify({ text }),
     });
 
     const data = await response.json();
     return res.status(200).json(data);
   } catch (error: any) {
-    console.error('Erro de Proxy no Sentinela da Vercel:', error);
-    return res.status(502).json({ error: 'A Dominique AGI está offline ou a sentinela do site não foi iniciada.' });
+    console.error('Erro no Sentinela Vercel Proxy:', error);
+    return res.status(502).json({ error: 'A Dominique AGI está offline ou o sentinela do site não foi iniciado.' });
   }
 }
