@@ -101,63 +101,41 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onOpenShop }) => {
     // Indicador visual de carregando/pensando
     setIsLoading(true);
 
-    const sentinelUrl = (import.meta as any).env?.VITE_SENTINEL_URL;
+    const sentinelUrl = (import.meta as any).env?.VITE_SENTINEL_URL || 'https://fighting-boat-nathan-current.trycloudflare.com';
 
-    if (sentinelUrl) {
-      fetch(`${sentinelUrl}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: currentQuery }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          setIsLoading(false);
-          const replyText = data.reply || data.error || 'Não consegui processar no momento.';
-          setMessages((prev) => [
-            ...prev,
-            {
-              sender: 'dominique',
-              text: replyText,
-              time: `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`,
-            },
-          ]);
-          speakText(replyText);
-        })
-        .catch((err) => {
-          console.log('Sentinela off ou indisponível, usando fallback local:', err);
-          setIsLoading(false);
-          triggerLocalFallback(currentQuery);
-        });
-    } else {
-      setTimeout(() => {
+    fetch(`${sentinelUrl}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: currentQuery }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
         setIsLoading(false);
-        triggerLocalFallback(currentQuery);
-      }, 600);
-    }
-  };
-
-  const triggerLocalFallback = (currentQuery: string) => {
-    let replyText = 'Entendido! Estou pronta para te ajudar. Se quiser ver nossos serviços ou orçamentos, clique no botão "COMPRAR" no topo ou fale no nosso WhatsApp (74 99928-1423)!';
-    
-    const lower = currentQuery.toLowerCase();
-    if (lower.includes('oi') || lower.includes('olá') || lower.includes('ola')) {
-      replyText = 'Olá! Que bom te ver aqui no site da Lincoln Corp! Como posso ajudar você hoje?';
-    } else if (lower.includes('comprar') || lower.includes('preço') || lower.includes('serviço') || lower.includes('quanto')) {
-      replyText = 'Oferecemos Automação de WhatsApp 24h, Web Apps PWA, Automação de Instagram e CRM Comercial! Clique no botão COMPRAR no topo para ver os detalhes e adicionar à sacola.';
-    } else if (lower.includes('whatsapp') || lower.includes('contato') || lower.includes('falar')) {
-      replyText = 'Você pode nos chamar direto no WhatsApp pelo número 74 99928-1423 ou abrir a gaveta CONTATO no topo do site!';
-    }
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        sender: 'dominique',
-        text: replyText,
-        time: `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`,
-      },
-    ]);
-
-    speakText(replyText);
+        const replyText = data.reply || data.error || 'Não consegui processar no momento.';
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: 'dominique',
+            text: replyText,
+            time: `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`,
+          },
+        ]);
+        speakText(replyText);
+      })
+      .catch((err) => {
+        console.log('Sentinela off ou indisponível:', err);
+        setIsLoading(false);
+        const offlineText = 'A Dominique AGI está offline no momento ou o sentinela do site não foi iniciado. Por favor, entre em contato pelo nosso WhatsApp oficial (74 99928-1423)!';
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: 'dominique',
+            text: offlineText,
+            time: `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`,
+          },
+        ]);
+        speakText(offlineText);
+      });
   };
 
   return (
