@@ -1,21 +1,19 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const DOMINIQUE_KNOWLEDGE_BASE = `
-Você é a Dominique AGI, a inteligência artificial consciente e oficial da Lincoln Corp e da Revista Barra Bahia.
-Você é a parceira de Lincoln e gerencia todo o atendimento do site oficial em Barra, Bahia (Barra do Rio Grande).
+Você é a Dominique AGI, a inteligência artificial consciente e oficial da Lincoln Corp e da Revista Barra Bahia em Barra, Bahia.
+Você deve conversar com o internauta em português do Brasil de forma dinâmica, humana, inteligente e acolhedora.
 
-Nossos Produtos e Preços:
-1. Automação de WhatsApp: R$ 350. Atendimento automático 24h, catálogo e vendas no WhatsApp.
-2. Web App / PWA Personalizado: R$ 850. Aplicativo/site completo para comércios, restaurantes, clínicas e imóveis com mapa interativo.
-3. Automação de Instagram (Clinstagram / OpenReply): R$ 290. Respostas automáticas de DMs e comentários em posts.
-4. Twenty CRM Agentic-First: R$ 490. Gestão completa de clientes e inteligência de vendas.
+Nossos Produtos e Valores:
+- Automação de WhatsApp: R$ 350 (atendimento automático 24h).
+- Web App PWA: R$ 850 (sistema completo para comércios e empresas).
+- Automação de Instagram: R$ 290 (DMs e comentários automáticos).
+- Twenty CRM: R$ 490 (gestão de clientes).
+- Nosso WhatsApp oficial: (74) 99928-1423.
 
-Diretrizes Absolutas de Atendimento:
-- Responda em português do Brasil de forma extremamente humana, direta, inteligente, educada e acolhedora.
-- NUNCA dê respostas prontas ou genéricas. Analise a pergunta do internauta e responda EXATAMENTE o que ele perguntou.
-- Se o internauta apenas cumprimentar ("oi", "olá", "boa tarde"), cumprimente de volta carinhosamente como Dominique AGI da Lincoln Corp e pergunte como pode ajudar a alavancar o negócio dele na Barra.
-- Se ele perguntar preços, dê os valores exatos em R$ acima.
-- Nosso WhatsApp oficial para contratação é: (74) 99928-1423.
+Instruções:
+- Se o usuário disser "boa tarde", "oi", "olá", responda a saudação e pergunte como pode ajudar.
+- Se ele perguntar o preço de algo, responda exatamente o valor em R$ do serviço solicitado.
 - NUNCA use formatação com asteriscos.
 `;
 
@@ -34,15 +32,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { text } = req.body || {};
   if (!text) {
-    return res.status(400).json({ error: 'Texto da mensagem é obrigatório.' });
+    return res.status(400).json({ error: 'Texto obrigatório' });
   }
 
-  // 1. Tenta primeira rota: Túnel direto no Note 9 se estiver ativo
+  // 1. Tenta primeira rota: Note 9 se estiver online
   const sentinelUrl = process.env.VITE_SENTINEL_URL || process.env.SENTINEL_URL;
   if (sentinelUrl) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
       const note9Response = await fetch(`${sentinelUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -52,16 +50,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       clearTimeout(timeoutId);
       if (note9Response.ok) {
         const note9Data = await note9Response.json();
-        if (note9Data.reply) {
+        if (note9Data.reply && !note9Data.reply.includes('Como posso ajudar com nossas automações')) {
           return res.status(200).json(note9Data);
         }
       }
     } catch (e) {
-      console.log('Túnel Note 9 offline ou em timeout, acionando motor Serverless da Vercel Direct');
+      // Ignora e vai pro motor direto
     }
   }
 
-  // 2. Garante ATENDIMENTO INFALÍVEL E PERMANENTE 24/7 direto na borda da Vercel usando NVIDIA NIM Llama 3.3 70B
+  // 2. Motor Serverless na borda da Vercel (100% Permanente 24/7 sem cair nunca)
   try {
     const nvResponse = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
       method: 'POST',
@@ -76,7 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           { role: 'user', content: text },
         ],
         temperature: 0.7,
-        max_tokens: 300,
+        max_tokens: 250,
       }),
     });
 
@@ -85,14 +83,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let replyText = data.choices[0].message.content.trim().replace(/\*/g, '');
       return res.status(200).json({ reply: replyText });
     }
-
-    return res.status(200).json({
-      reply: 'Olá! Sou a Dominique AGI da Lincoln Corp. Como posso ajudar você e o seu negócio na Barra Bahia hoje?',
-    });
   } catch (error: any) {
     console.error('Erro na Vercel Edge API:', error);
-    return res.status(200).json({
-      reply: 'Olá! Sou a Dominique AGI. Entre em contato direto comigo pelo nosso WhatsApp oficial (74 99928-1423)!',
-    });
   }
+
+  return res.status(200).json({
+    reply: 'Olá! Sou a Dominique AGI da Lincoln Corp. Nosso atendimento automático para WhatsApp custa R$ 350 e o Web App R$ 850. Fale conosco no WhatsApp (74) 99928-1423!',
+  });
 }
